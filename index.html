@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nomad Finder</title>
+  <script src="https://unpkg.com/globe.gl"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a2332;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 20px 24px 12px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    header h1 .title-text {
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p { font-size: 0.95rem; color: #8899aa; margin-top: 4px; }
+
+    /* Find My Place button */
+    .find-btn-wrap {
+      text-align: center;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+
+    .find-btn {
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      border: none;
+      border-radius: 50px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 4px 20px rgba(0,212,255,0.25);
+    }
+
+    .find-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    /* Main layout */
+    .main {
+      display: flex;
+      gap: 20px;
+      padding: 0 28px;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* City list */
+    .city-list {
+      flex: 0 0 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    .city-list::-webkit-scrollbar { width: 4px; }
+    .city-list::-webkit-scrollbar-thumb { background: #334455; border-radius: 4px; }
+
+    .city-list-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #556677;
+      font-weight: 600;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .city-item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .city-item:hover { background: rgba(0,212,255,0.08); border-color: rgba(0,212,255,0.3); }
+    .city-item.active { background: rgba(0,212,255,0.12); border-color: #00d4ff; }
+    .city-item .flag { font-size: 1.2rem; }
+    .city-item .info { flex: 1; }
+    .city-item .city-name { font-size: 0.88rem; font-weight: 600; }
+    .city-item .city-cost { font-size: 0.72rem; color: #8899aa; margin-top: 1px; }
+    .city-item .vibe-dot { width: 7px; height: 7px; border-radius: 50%; background: #334455; flex-shrink: 0; }
+    .city-item.active .vibe-dot { background: #00d4ff; }
+
+    /* Globe */
+    #globe-container {
+      flex: 0 0 500px;
+      width: 500px;
+      align-self: center;
+    }
+
+    /* Results panel */
+    .results-panel {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px 0 16px;
+      min-width: 0;
+    }
+
+    .results-panel::-webkit-scrollbar { width: 4px; }
+    .results-panel::-webkit-scrollbar-thumb { background: #334455; border-radius: 4px; }
+
+    .empty-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #334455;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .empty-panel .icon { font-size: 2.5rem; }
+    .empty-panel p { font-size: 0.95rem; line-height: 1.6; }
+
+    .rec-card {
+      background: rgba(0,212,255,0.07);
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #cce8f0;
+      animation: fadeUp 0.35s ease;
+    }
+
+    .info-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: fadeUp 0.35s ease;
+    }
+
+    .info-card-header {
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .info-card-header:hover { background: rgba(255,255,255,0.04); }
+    .info-card-header .card-icon { font-size: 1.1rem; }
+    .info-card-header .card-title { flex: 1; font-size: 0.88rem; font-weight: 600; color: #ccd6e0; }
+    .info-card-header .chevron { color: #556677; font-size: 0.75rem; transition: transform 0.2s; }
+    .info-card.open .chevron { transform: rotate(90deg); }
+
+    .info-card-body {
+      display: none;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      line-height: 1.75;
+      color: #8899aa;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .info-card.open .info-card-body { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── WIZARD MODAL ─────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,16,26,0.85);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #1e2d3f;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 40px;
+      width: 540px;
+      max-width: 90vw;
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-progress {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+
+    .progress-dot {
+      flex: 1;
+      height: 3px;
+      background: #2a3a4a;
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+
+    .progress-dot.done { background: #00d4ff; }
+
+    .modal-question {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 0.88rem;
+      color: #8899aa;
+      margin-bottom: 24px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .option-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 16px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+      color: #ccd6e0;
+    }
+
+    .option-btn .opt-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; }
+    .option-btn .opt-label { font-size: 0.88rem; font-weight: 600; }
+    .option-btn .opt-sub { font-size: 0.75rem; color: #667788; margin-top: 2px; }
+
+    .option-btn:hover { border-color: rgba(0,212,255,0.5); background: rgba(0,212,255,0.06); }
+    .option-btn.selected { border-color: #00d4ff; background: rgba(0,212,255,0.12); color: #fff; }
+
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-back {
+      background: none;
+      border: none;
+      color: #556677;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 8px 0;
+    }
+
+    .modal-back:hover { color: #aabbcc; }
+
+    .modal-next {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 0.4;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-next.ready { opacity: 1; pointer-events: all; }
+    .thinking-text { color: #556677; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌍 <span class="title-text">Nomad Finder</span></h1>
+    <p>Find your perfect next city</p>
+  </header>
+
+  <div class="find-btn-wrap">
+    <button class="find-btn" id="find-btn">✨ Find My Perfect City</button>
+  </div>
+
+  <div class="main">
+    <div class="city-list">
+      <div class="city-list-label">Popular cities</div>
+      <div id="city-list-items"></div>
+    </div>
+
+    <div id="globe-container"></div>
+
+    <div class="results-panel" id="results-panel">
+      <div class="empty-panel">
+        <span class="icon">✨</span>
+        <p>Click <b>Find My Perfect City</b><br>or pick a city from the list</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wizard Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-progress" id="modal-progress"></div>
+      <div class="modal-question" id="modal-question"></div>
+      <div class="modal-sub" id="modal-sub"></div>
+      <div class="option-grid" id="option-grid"></div>
+      <div class="modal-footer">
+        <button class="modal-back" id="modal-back">← Back</button>
+        <button class="modal-next" id="modal-next">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cities = [
+      { name: "Bali",        country: "🇮🇩", countrySlug: "indonesia",  lat: -8.4095,  lng: 115.1889, cost: 1200, wifi: 7,  vibe: "Beach",   desc: "Spiritual surf culture, cheap living, strong nomad community" },
+      { name: "Lisbon",      country: "🇵🇹", countrySlug: "portugal",   lat: 38.7169,  lng: -9.1395,  cost: 2200, wifi: 9,  vibe: "City",    desc: "Europe's sunniest capital, startup scene, incredible food" },
+      { name: "Chiang Mai",  country: "🇹🇭", countrySlug: "thailand",   lat: 18.7883,  lng: 98.9853,  cost: 900,  wifi: 8,  vibe: "Culture", desc: "Temples, mountains, the original nomad hub, ultra cheap" },
+      { name: "Medellín",    country: "🇨🇴", countrySlug: "colombia",   lat: 6.2442,   lng: -75.5812, cost: 1400, wifi: 7,  vibe: "City",    desc: "Eternal spring climate, buzzing social scene, affordable" },
+      { name: "Mexico City", country: "🇲🇽", countrySlug: "mexico",     lat: 19.4326,  lng: -99.1332, cost: 1800, wifi: 8,  vibe: "City",    desc: "World-class food, culture, massive expat community" },
+      { name: "Porto",       country: "🇵🇹", countrySlug: "portugal",   lat: 41.1579,  lng: -8.6291,  cost: 1900, wifi: 9,  vibe: "Culture", desc: "Wine, cobblestones, slower pace, Lisbon's cooler sibling" },
+      { name: "Bangkok",     country: "🇹🇭", countrySlug: "thailand",   lat: 13.7563,  lng: 100.5018, cost: 1100, wifi: 9,  vibe: "City",    desc: "Insane food, fast internet, 24/7 energy, visa-friendly" },
+      { name: "Tbilisi",     country: "🇬🇪", countrySlug: "georgia",    lat: 41.6938,  lng: 44.8015,  cost: 1000, wifi: 8,  vibe: "Culture", desc: "Underrated gem, Georgian wine, remote-work visa, tiny crowds" }
+    ];
+
+    const questions = [
+      {
+        q: "What's your monthly budget?",
+        sub: "Including rent, food, and coworking",
+        key: "budget",
+        options: [
+          { icon: "🌱", label: "Under $1,000",   sub: "Ultra budget",    value: "under $1,000/mo" },
+          { icon: "✈️", label: "$1,000–$1,500",  sub: "Sweet spot",      value: "$1,000–$1,500/mo" },
+          { icon: "🏙️", label: "$1,500–$2,500",  sub: "Comfortable",     value: "$1,500–$2,500/mo" },
+          { icon: "💎", label: "$2,500+",         sub: "No limits",       value: "$2,500+/mo" },
+        ]
+      },
+      {
+        q: "What's your ideal vibe?",
+        sub: "Pick the one that speaks to you",
+        key: "vibe",
+        options: [
+          { icon: "🏖️", label: "Beach & Sun",     sub: "Surf, sand, sunsets",       value: "beach vibes" },
+          { icon: "🏙️", label: "City Energy",     sub: "Buzz, culture, nightlife",  value: "city energy" },
+          { icon: "🏛️", label: "Culture & History", sub: "Art, food, local life",   value: "culture and history" },
+          { icon: "🌿", label: "Chill & Slow",    sub: "Nature, peace, reset",      value: "slow and peaceful" },
+        ]
+      },
+      {
+        q: "Which region calls you?",
+        sub: "Or let us surprise you",
+        key: "region",
+        options: [
+          { icon: "🌏", label: "Asia",          sub: "Thailand, Bali, Georgia…",  value: "Asia" },
+          { icon: "🌍", label: "Europe",        sub: "Portugal, Georgia…",        value: "Europe" },
+          { icon: "🌎", label: "Americas",      sub: "Colombia, Mexico…",         value: "Americas" },
+          { icon: "🎲", label: "Surprise Me",   sub: "Best fit anywhere",         value: "anywhere, surprise me" },
+        ]
+      },
+      {
+        q: "What matters most to you?",
+        sub: "Your non-negotiable",
+        key: "priority",
+        options: [
+          { icon: "📶", label: "Fast WiFi",        sub: "Work comes first",         value: "fast reliable wifi" },
+          { icon: "💸", label: "Low Cost",          sub: "Stretch every dollar",     value: "lowest possible cost" },
+          { icon: "👥", label: "Nomad Community",   sub: "Meet your people",         value: "strong nomad community" },
+          { icon: "🛡️", label: "Safety",            sub: "Peace of mind",            value: "safety and low crime" },
+        ]
+      }
+    ];
+
+    // ── Wizard state ──────────────────────────────────
+    let step = 0;
+    const answers = {};
+
+    function openWizard() {
+      step = 0;
+      Object.keys(answers).forEach(k => delete answers[k]);
+      renderStep();
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+
+    function closeWizard() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+
+    function renderStep() {
+      const q = questions[step];
+
+      // Progress dots
+      const prog = document.getElementById('modal-progress');
+      prog.innerHTML = questions.map((_, i) =>
+        `<div class="progress-dot ${i <= step ? 'done' : ''}"></div>`
+      ).join('');
+
+      document.getElementById('modal-question').textContent = q.q;
+      document.getElementById('modal-sub').textContent = q.sub;
+
+      const grid = document.getElementById('option-grid');
+      grid.innerHTML = q.options.map(o => `
+        <div class="option-btn ${answers[q.key] === o.value ? 'selected' : ''}"
+             data-value="${o.value}">
+          <span class="opt-icon">${o.icon}</span>
+          <div class="opt-label">${o.label}</div>
+          <div class="opt-sub">${o.sub}</div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          answers[q.key] = btn.dataset.value;
+          document.getElementById('modal-next').classList.add('ready');
+        });
+      });
+
+      const nextBtn = document.getElementById('modal-next');
+      nextBtn.classList.toggle('ready', !!answers[q.key]);
+      nextBtn.textContent = step === questions.length - 1 ? '✨ Find My Match' : 'Next →';
+
+      const backBtn = document.getElementById('modal-back');
+      backBtn.style.visibility = step === 0 ? 'hidden' : 'visible';
+    }
+
+    document.getElementById('find-btn').addEventListener('click', openWizard);
+
+    document.getElementById('modal-back').addEventListener('click', () => {
+      if (step > 0) { step--; renderStep(); }
+    });
+
+    document.getElementById('modal-next').addEventListener('click', async () => {
+      if (!answers[questions[step].key]) return;
+      if (step < questions.length - 1) {
+        step++;
+        renderStep();
+      } else {
+        closeWizard();
+        await runAI();
+      }
+    });
+
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modal-overlay')) closeWizard();
+    });
+
+    // ── AI call ───────────────────────────────────────
+    async function runAI() {
+      const panel = document.getElementById('results-panel');
+      panel.innerHTML = `<div class="rec-card"><span class="thinking-text">🤔 Your AI travel agent is thinking...</span></div>`;
+
+      const query = `Budget: ${answers.budget}. Vibe: ${answers.vibe}. Region: ${answers.region}. Priority: ${answers.priority}.`;
+
+      try {
+        const res = await fetch('/api/find-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            cities: cities.map(c => ({ name: c.name, vibe: c.vibe, cost: c.cost, wifi: c.wifi, desc: c.desc }))
+          })
+        });
+
+        const data = await res.json();
+        const mentioned = cities.find(c => data.result.toLowerCase().includes(c.name.toLowerCase()));
+
+        if (mentioned) {
+          globe.pointOfView({ lat: mentioned.lat, lng: mentioned.lng, altitude: 1.5 }, 1200);
+          globe.controls().autoRotate = false;
+          globe.pointColor(d => d.name === mentioned.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+          document.querySelectorAll('.city-item').forEach(el => {
+            el.classList.toggle('active', el.querySelector('.city-name').textContent === mentioned.name);
+          });
+          showCityPanel(mentioned, data.result);
+        } else {
+          panel.innerHTML = `<div class="rec-card">${data.result}</div>`;
+        }
+      } catch (err) {
+        panel.innerHTML = `<div class="rec-card"><span class="thinking-text">Connection error — is Netlify Dev running?</span></div>`;
+      }
+    }
+
+    // ── City panel ────────────────────────────────────
+    function showCityPanel(city, recText) {
+      const panel = document.getElementById('results-panel');
+      panel.innerHTML = `
+        <div class="rec-card">
+          <strong style="font-size:1.05rem">${city.country} ${city.name}</strong><br><br>
+          ${recText}
+        </div>
+        ${infoCard('🏨', 'Where to Stay', whereToStay(city))}
+        ${infoCard('🛂', 'Visa Info — UK Residents', visaInfo(city))}
+        ${infoCard('💰', 'Monthly Budget Breakdown', budgetBreakdown(city))}
+        ${infoCard('📶', 'Nomad Stats', nomadStats(city))}
+      `;
+      panel.querySelectorAll('.info-card-header').forEach(h => {
+        h.addEventListener('click', () => h.parentElement.classList.toggle('open'));
+      });
+    }
+
+    function infoCard(icon, title, content) {
+      return `<div class="info-card">
+        <div class="info-card-header">
+          <span class="card-icon">${icon}</span>
+          <span class="card-title">${title}</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="info-card-body">${content}</div>
+      </div>`;
+    }
+
+    function whereToStay(city) {
+      const d = {
+        "Bali":        "🏡 <b>Canggu</b> — nomad hub, cafés everywhere, from $400/mo<br>🏄 <b>Seminyak</b> — upscale, great nightlife, from $600/mo<br>🌿 <b>Ubud</b> — jungle, yoga, quieter lifestyle, from $350/mo",
+        "Lisbon":      "🏘️ <b>Mouraria</b> — authentic, central, from €800/mo<br>🌊 <b>Cascais</b> — beach town 30 mins out, great quality of life<br>🎨 <b>LX Factory area</b> — trendy, creative, co-living options",
+        "Chiang Mai":  "☕ <b>Nimman</b> — the nomad district, co-working on every corner, from $300/mo<br>🏛️ <b>Old City</b> — cheap, cultural, surrounded by temples<br>🌄 <b>Hang Dong</b> — quieter, modern condos, great for longer stays",
+        "Medellín":    "🌆 <b>El Poblado</b> — safest, most expat-friendly, from $500/mo<br>🎭 <b>Laureles</b> — local feel, cheaper, great food scene<br>🌿 <b>Envigado</b> — quieter suburb, excellent value",
+        "Mexico City": "🏙️ <b>Roma Norte</b> — the nomad neighbourhood, incredible food, from $600/mo<br>🌳 <b>Condesa</b> — leafy, café culture, slightly pricier<br>🏺 <b>Coyoacán</b> — bohemian, great long-term rentals",
+        "Porto":       "🍷 <b>Bonfim</b> — up and coming, authentic, affordable from €600/mo<br>🌉 <b>Ribeira</b> — scenic riverside, beautiful<br>🎓 <b>Foz do Douro</b> — near the ocean, calmer, great for longer stays",
+        "Bangkok":     "🏙️ <b>Silom/Sathorn</b> — great transport links, from $400/mo<br>🛕 <b>Ari</b> — local favourite, cafés and parks<br>🌆 <b>Sukhumvit</b> — expat central, everything on your doorstep",
+        "Tbilisi":     "🍷 <b>Vera</b> — leafy, walkable, popular with nomads, from $300/mo<br>🏛️ <b>Old Town</b> — stunning architecture, great atmosphere<br>🌆 <b>Vake</b> — upscale, parks, quieter pace"
+      };
+      return d[city.name] || "Neighbourhood info coming soon.";
+    }
+
+    function visaInfo(city) {
+      const d = {
+        "Bali":        "🇬🇧 <b>30 days free on arrival</b>, extendable to 60 days (~$35). New <b>Digital Nomad Visa</b> available up to 5 years (requires ~$2k/mo income).",
+        "Lisbon":      "🇬🇧 <b>90 days visa-free</b> in Schengen. Portugal's <b>D8 Digital Nomad Visa</b> is one of the world's best — requires €760/mo income proof.",
+        "Chiang Mai":  "🇬🇧 <b>30 days visa-free</b> on arrival, extendable once. <b>Thailand LTR Visa</b> allows 10 years for remote workers earning $80k+ p/a.",
+        "Medellín":    "🇬🇧 <b>90 days visa-free</b>, extendable for another 90 days. Total 180 days/year with no visa required.",
+        "Mexico City": "🇬🇧 <b>180 days visa-free</b> — one of the most generous in the world. No special visa needed for remote workers.",
+        "Porto":       "🇬🇧 <b>90 days Schengen visa-free</b>. Portugal's <b>D8 Digital Nomad Visa</b> is excellent for longer stays.",
+        "Bangkok":     "🇬🇧 <b>30 days visa-free</b>, extendable. New <b>Destination Thailand Visa</b> allows 180 days/year for remote workers.",
+        "Tbilisi":     "🇬🇧 <b>365 days visa-free</b> — one of the best in the world. Stay a full year with zero paperwork."
+      };
+      return d[city.name] || "Visa info coming soon.";
+    }
+
+    function budgetBreakdown(city) {
+      const d = {
+        "Bali":        "🏡 Rent (1BR): $300–500<br>🍜 Food: $200–300<br>💻 Coworking: $80–120<br>🛵 Scooter: $60<br>📱 SIM + wifi: $20<br><b>Total: ~$800–1,200/mo</b>",
+        "Lisbon":      "🏡 Rent (1BR): €900–1,400<br>🍽️ Food: €300–400<br>💻 Coworking: €150–200<br>🚇 Transport: €40<br><b>Total: ~€1,500–2,200/mo</b>",
+        "Chiang Mai":  "🏡 Rent (1BR): $200–400<br>🍜 Food: $150–250<br>💻 Coworking: $60–100<br>🛵 Scooter: $50<br>📱 SIM: $10<br><b>Total: ~$600–900/mo</b>",
+        "Medellín":    "🏡 Rent (1BR): $400–700<br>🍽️ Food: $200–300<br>💻 Coworking: $80–150<br>🚌 Transport: $30<br><b>Total: ~$800–1,400/mo</b>",
+        "Mexico City": "🏡 Rent (1BR): $600–1,000<br>🌮 Food: $250–400<br>💻 Coworking: $100–180<br>🚇 Transport: $20<br><b>Total: ~$1,100–1,800/mo</b>",
+        "Porto":       "🏡 Rent (1BR): €700–1,200<br>🍽️ Food: €250–350<br>💻 Coworking: €120–180<br>🚌 Transport: €35<br><b>Total: ~€1,200–1,900/mo</b>",
+        "Bangkok":     "🏡 Rent (1BR): $400–700<br>🍜 Food: $200–350<br>💻 Coworking: $80–150<br>🚇 BTS/MRT: $30<br><b>Total: ~$800–1,300/mo</b>",
+        "Tbilisi":     "🏡 Rent (1BR): $300–500<br>🍷 Food: $150–250<br>💻 Coworking: $60–100<br>🚌 Transport: $15<br><b>Total: ~$600–1,000/mo</b>"
+      };
+      return d[city.name] || "Budget breakdown coming soon.";
+    }
+
+    function nomadStats(city) {
+      const stars = n => '⭐'.repeat(n) + '☆'.repeat(5 - n);
+      return `📶 WiFi Speed: ${stars(city.wifi >= 9 ? 5 : city.wifi >= 7 ? 4 : 3)} (${city.wifi}/10)<br>
+💰 Affordability: ${stars(city.cost < 1100 ? 5 : city.cost < 1500 ? 4 : city.cost < 2000 ? 3 : 2)}<br>
+👥 Nomad Community: ${['Bali','Chiang Mai','Lisbon','Bangkok','Mexico City'].includes(city.name) ? '⭐⭐⭐⭐⭐ Very large' : '⭐⭐⭐⭐ Growing fast'}<br>
+🗣️ English: ${['Bali','Bangkok','Chiang Mai','Lisbon','Porto','Mexico City'].includes(city.name) ? 'Widely spoken' : 'Basic — Google Translate helps'}<br>
+☀️ Weather: Great year-round`;
+    }
+
+    // ── City list ─────────────────────────────────────
+    const listEl = document.getElementById('city-list-items');
+    cities.forEach((city, i) => {
+      const el = document.createElement('div');
+      el.className = 'city-item';
+      el.dataset.index = i;
+      el.innerHTML = `
+        <span class="flag">${city.country}</span>
+        <div class="info">
+          <div class="city-name">${city.name}</div>
+          <div class="city-cost">$${city.cost.toLocaleString()}/mo · ${city.vibe}</div>
+        </div>
+        <div class="vibe-dot"></div>`;
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.city-item').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1000);
+        globe.controls().autoRotate = false;
+        globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+        showCityPanel(city, city.desc);
+      });
+      listEl.appendChild(el);
+    });
+
+    // ── Globe ─────────────────────────────────────────
+    const globe = Globe()
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      .backgroundColor('rgba(0,0,0,0)')
+      .pointsData(cities)
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointColor(() => '#00d4ff')
+      .pointAltitude(0.02)
+      .pointRadius(0.6)
+      .pointLabel(d => `<div style="color:#00d4ff;font-weight:bold;font-size:13px;background:rgba(10,22,40,0.85);padding:4px 10px;border-radius:6px">${d.name}</div>`)
+      .onPointClick(city => {
+        const el = document.querySelector(`[data-index="${cities.indexOf(city)}"]`);
+        el.click();
+      })
+      .width(500)
+      .height(500)
+      (document.getElementById('globe-container'));
+
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.6;
+    globe.controls().enableZoom = false;
+  </script>
+
+</body>
+</html>
