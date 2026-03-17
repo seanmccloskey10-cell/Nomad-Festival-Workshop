@@ -39,26 +39,32 @@
 
 ---
 
-## 🔶 PROMPT 3 — Interactivity
+## 🔶 PROMPT 3 — Interactivity + Live Data
 
 > Click a city in the list → globe zooms there and stops
-> Right panel shows a city info card with 4 accordion sections:
+> Right panel makes a live API call and shows:
+> - 🌤️ Current weather (OpenWeatherMap API — real live data)
 > - 🏠 Where to Stay — 3 neighbourhoods with prices
 > - ✈️ Visa Info for UK residents
 > - 💰 Monthly Budget Breakdown
-> - 📊 Nomad Stats (wifi, cost, community, English)
-> Hardcode data for all 8 cities
+> - 📶 Nomad Stats (wifi, affordability, community, English)
+> Show a loading spinner while fetching
+> Netlify function: netlify/functions/city-info.js
+> Calls Anthropic API for nomad data, OpenWeatherMap for weather
+> API keys: ANTHROPIC_API_KEY + OPENWEATHER_API_KEY in .env.local
 
 ---
 
-## 🔶 PROMPT 4 — AI Wizard
+## 🔶 PROMPT 4 — AI Recommendation Wizard
 
-> Add a "✨ Find My Perfect City" button at the top
-> Opens a 4-step popup wizard:
-> 1. Budget — Under $1k / $1k–$1.5k / $1.5k–$2.5k / $2.5k+
-> 2. Vibe — Beach & Sun / City Energy / Culture & History / Chill & Slow
-> 3. Region — Asia / Europe / Americas / Surprise Me
-> 4. Priority — Fast WiFi / Low Cost / Nomad Community / Safety
-> Big clickable cards, progress bar, back/next buttons
-> On finish: AI picks best match, globe flies there, panel fills with full briefing
-> API key in .env file, called via a Netlify function
+> Wire up the "✨ Find My Perfect City" button — opens a wizard:
+> 3 quick-pick steps (big clickable cards, 2×2 grid, progress bar):
+> - Step 1 — Budget: 🌱 Under $1k / ✈️ $1k–$1.5k / 🏙️ $1.5k–$2.5k / 💎 $2.5k+
+> - Step 2 — Vibe: 🏖️ Beach & Sun / 🏙️ City Energy / 🏛️ Culture & History / 🌿 Chill & Slow
+> - Step 3 — Region: 🌏 Asia / 🌍 Europe / 🌎 Americas / 🎲 Surprise Me
+> Final step — free text field: "Tell us about yourself — what are you escaping or looking for?"
+> Back/Next buttons, Next disabled until option selected
+> On finish: POST to /api/find-match — AI reads your answers + your story, picks the best city
+> Globe flies there, right panel shows personalised recommendation with the AI's reasoning
+> Netlify function: netlify/functions/find-match.js
+> Try Anthropic first, fall back to OpenAI if it fails

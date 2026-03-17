@@ -302,112 +302,282 @@ const cities = [
 
 ---
 
-## Prompt 3 — Interactivity
+## Prompt 3 — Interactivity + Live Data
 
-### Build exactly this:
+### What changes
+- City list becomes clickable — globe zooms, panel fills
+- Right panel now makes **live API calls** instead of showing hardcoded data
+- Two APIs: OpenWeatherMap (real weather) + Anthropic (nomad data)
+- The lesson: *APIs turn a static page into a connected tool*
 
-**City list click → globe zooms:**
+### City list click → globe zooms (reference code):
 ```js
-globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1000);
-globe.controls().autoRotate = false;
-globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+function selectCity(city) {
+  globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1000);
+  globe.controls().autoRotate = false;
+  globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+  loadCityData(city);
+}
 ```
-- Selected city dot turns white, others dim — clear visual focus
-- Globe clicks also trigger the same behaviour
 
-**Right panel — city card + 4 accordions:**
-- Top card: flag, city name, description (styled with cyan tint border)
-- 4 accordion items below, click header to expand
+### Frontend API call with loading state:
+```js
+async function loadCityData(city) {
+  // Show loading state
+  resultsPanel.innerHTML = `<div class="loading">Loading ${city.name} data...</div>`;
 
-**Accordion content — hardcode all 8 cities:**
+  try {
+    const res = await fetch(`/api/city-info?city=${encodeURIComponent(city.name)}`);
+    const data = await res.json();
+    renderCityPanel(city, data);
+  } catch (e) {
+    resultsPanel.innerHTML = `<div class="error">Could not load data. Try again.</div>`;
+  }
+}
+```
 
-*🏨 Where to Stay:*
-- Bali: Canggu ($400/mo), Seminyak ($600/mo), Ubud ($350/mo)
-- Lisbon: Mouraria (€800/mo), Cascais, LX Factory area
-- Chiang Mai: Nimman ($300/mo), Old City, Hang Dong
-- Medellín: El Poblado ($500/mo), Laureles, Envigado
-- Mexico City: Roma Norte ($600/mo), Condesa, Coyoacán
-- Porto: Bonfim (€600/mo), Ribeira, Foz do Douro
-- Bangkok: Silom/Sathorn ($400/mo), Ari, Sukhumvit
-- Tbilisi: Vera ($300/mo), Old Town, Vake
+### Netlify function: `netlify/functions/city-info.js`
+```js
+exports.handler = async (event) => {
+  const city = event.queryStringParameters?.city;
+  if (!city) return { statusCode: 400, body: JSON.stringify({ error: 'city required' }) };
 
-*🛂 Visa Info (UK Residents):*
-- Bali: 30 days on arrival, extendable to 60. Digital Nomad Visa up to 5 years
-- Lisbon/Porto: 90 days Schengen visa-free. D8 Digital Nomad Visa (requires €760/mo)
-- Chiang Mai/Bangkok: 30 days on arrival. Thailand LTR Visa (10 years, $80k+ p/a)
-- Medellín: 90 days visa-free, extendable 90 more. 180 days/year total
-- Mexico City: 180 days visa-free — one of the world's most generous
-- Tbilisi: 365 days visa-free — stay a full year, zero paperwork
+  // 1. Live weather from OpenWeatherMap
+  let weather = 'Weather unavailable';
+  try {
+    const w = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${process.env.OPENWEATHER_API_KEY}&units=metric`
+    );
+    const wd = await w.json();
+    weather = `${Math.round(wd.main.temp)}°C · ${wd.weather[0].description}`;
+  } catch (e) {}
 
-*💰 Monthly Budget:*
-- Show: Rent, Food, Coworking, Transport, SIM, **Total**
-- Bali: $800–1,200 | Lisbon: €1,500–2,200 | Chiang Mai: $600–900
-- Medellín: $800–1,400 | Mexico City: $1,100–1,800 | Porto: €1,200–1,900
-- Bangkok: $800–1,300 | Tbilisi: $600–1,000
+  // 2. Nomad data from AI — Anthropic primary, OpenAI fallback
+  const prompt = `Give digital nomad information for ${city} as JSON:
+{
+  "whereToStay": [{"neighbourhood":"name","price":"$X/mo","vibe":"one line"}],
+  "visaUK": "visa rules for UK passport holders, 1-2 sentences",
+  "budget": {"min":900,"max":1400,"currency":"USD","breakdown":"brief line"},
+  "nomadStats": {"wifi":8,"affordability":7,"community":8,"english":7}
+}
+Return only valid JSON, no markdown.`;
 
-*📶 Nomad Stats:*
-- WiFi score (out of 10), affordability stars, community size, English spoken
+  let nomadData = {};
+
+  // Try Anthropic first
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const d = await res.json();
+    nomadData = JSON.parse(d.content[0].text);
+  } catch (e) {
+    // Fallback: OpenAI
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' }
+        })
+      });
+      const d = await res.json();
+      nomadData = JSON.parse(d.choices[0].message.content);
+    } catch (e2) {
+      nomadData = { error: 'Data unavailable' };
+    }
+  }
+
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ weather, ...nomadData })
+  };
+};
+```
 
 ### Do NOT build yet:
 - The wizard modal
-- AI call
+- find-match Netlify function
 
 ---
 
-## Prompt 4 — AI Wizard
+## Prompt 4 — AI Recommendation Wizard
 
-### Build exactly this:
+### What changes
+- The "✨ Find My Perfect City" button becomes functional
+- 3 clickable steps + 1 free-text field → AI picks a city
+- The lesson: *AI doesn't just return data — it reasons and decides*
 
-**"✨ Find My Perfect City" button:**
-- Already visible from Prompt 2 but non-functional — now wire it up
-- Gradient pill button: `linear-gradient(135deg, #00d4ff, #a855f7)`
-- Opens the wizard modal on click
+### Wizard modal (reference):
+- Overlay: `rgba(10,16,26,0.9)` + `backdrop-filter: blur(8px)`
+- Card: `background: #0e1c2e`, 540px wide, 28px border-radius
+- Scale-in animation: `transform: scale(0.9) → scale(1)`, 0.25s ease-out
+- Progress: 3 dots + 1 text icon at top, filled cyan as steps complete
 
-**Wizard modal:**
-- Dark overlay with blur: `rgba(10,16,26,0.85)` + `backdrop-filter: blur(6px)`
-- Modal card: `#1e2d3f`, 540px wide, 24px border radius
-- Scale-in animation on open
-- Progress bar: 4 dots at top, filled cyan as steps complete
+### 3 quick-pick steps (2×2 grid of cards):
 
-**4 questions (each has 4 options in a 2×2 grid):**
+Step 1 — Budget: 🌱 Under $1k / ✈️ $1k–$1.5k / 🏙️ $1.5k–$2.5k / 💎 $2.5k+
+Step 2 — Vibe: 🏖️ Beach & Sun / 🏙️ City Energy / 🏛️ Culture & History / 🌿 Chill & Slow
+Step 3 — Region: 🌏 Asia / 🌍 Europe / 🌎 Americas / 🎲 Surprise Me
 
-Step 1 — Budget:
-- 🌱 Under $1,000 / ✈️ $1,000–$1,500 / 🏙️ $1,500–$2,500 / 💎 $2,500+
+Option card selected state: `border: 1.5px solid #00d4ff; background: rgba(0,212,255,0.08)`
+Next button disabled until option selected.
 
-Step 2 — Vibe:
-- 🏖️ Beach & Sun / 🏙️ City Energy / 🏛️ Culture & History / 🌿 Chill & Slow
+### Step 4 — free text:
+```html
+<div class="wizard-step" id="step4">
+  <h3>Tell us about yourself</h3>
+  <p class="wizard-sub">What are you escaping? What matters to you?</p>
+  <textarea id="aboutText" placeholder="e.g. I'm a designer in London, craving warmth and a slower pace. Fast WiFi matters, budget around $1,200/mo..." rows="4"></textarea>
+</div>
+```
+The free text field is where "it knows you" — the AI reads the person's own words, not just filter values.
 
-Step 3 — Region:
-- 🌏 Asia / 🌍 Europe / 🌎 Americas / 🎲 Surprise Me
+**Pre-scripted demo answer (verify this recommends Bali or Chiang Mai before going live):**
+> *"I'm a burnt-out designer, been in London four years. I need warmth, a beach nearby, good coffee shops, and decent WiFi. Budget around $1,200 a month, want somewhere I can actually slow down."*
 
-Step 4 — Priority:
-- 📶 Fast WiFi / 💸 Low Cost / 👥 Nomad Community / 🛡️ Safety
-
-**Option cards:** large icon, bold label, muted sub-label. Selected state: cyan border + tint. Next button disabled until an option is selected.
-
-**On finish → AI call:**
-- Combine all 4 answers into a natural language query
-- POST to `/api/find-match` (Netlify function)
-- Function: `netlify/functions/find-match.js` — reads `OPENAI_API_KEY` from env, calls `gpt-4o-mini`
-- Prompt tells AI to recommend the single best matching city from the list
-- Response: find the mentioned city name, zoom globe there, fill right panel with `showCityPanel(city, aiText)`
-
-**After AI responds:**
+### On finish → call find-match:
 ```js
-globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1200);
-globe.controls().autoRotate = false;
-globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+async function runWizard() {
+  const payload = {
+    budget: answers.budget,
+    vibe: answers.vibe,
+    region: answers.region,
+    about: document.getElementById('aboutText').value
+  };
+  const res = await fetch('/api/find-match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const { city: cityName, reason } = await res.json();
+  const city = cities.find(c => c.name === cityName);
+  if (city) {
+    globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1200);
+    globe.controls().autoRotate = false;
+    globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+    renderCityPanel(city, { aiReason: reason });
+  }
+}
 ```
 
-**Netlify setup:**
-- `netlify.toml` with `functions = "netlify/functions"` and redirect from `/api/*`
-- API key in `.env.local` as `OPENAI_API_KEY=...`
-- Run locally with `netlify dev`
+### Netlify function: `netlify/functions/find-match.js`
+```js
+exports.handler = async (event) => {
+  const { budget, vibe, region, about } = JSON.parse(event.body);
+  const cities = ['Bali','Lisbon','Chiang Mai','Medellín','Mexico City','Porto','Bangkok','Tbilisi'];
+
+  const prompt = `You are a digital nomad advisor. Pick the single best city from: ${cities.join(', ')}.
+
+Person's profile:
+- Budget: ${budget}
+- Vibe: ${vibe}
+- Region: ${region}
+- About them: ${about}
+
+Respond as JSON: { "city": "exact name from the list", "reason": "2-3 sentences referencing their specific words" }
+Return only valid JSON.`;
+
+  // Try Anthropic first
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const d = await res.json();
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: d.content[0].text
+    };
+  } catch (e) {
+    // Fallback: OpenAI
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' }
+        })
+      });
+      const d = await res.json();
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: d.choices[0].message.content
+      };
+    } catch (e2) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'AI unavailable' }) };
+    }
+  }
+};
+```
 
 ### Do NOT build:
 - Multiple city recommendations
-- Streaming (regular JSON response is fine and more reliable live)
+- Streaming responses (regular JSON is more reliable live)
 - Share buttons
+
+---
+
+## API Keys & Security
+
+### Keys required — add to `.env.local` (never commit this file):
+```
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...          ← fallback only
+OPENWEATHER_API_KEY=...
+```
+
+### Why it's secure:
+- All API calls go through Netlify functions (server-side) — the browser never touches a key
+- `.env.local` is gitignored — keys never reach GitHub
+- Browser calls `/api/city-info` → Netlify reads key from env → calls external API → returns data
+- Pattern: browser → your function → external API (keys invisible to browser at all times)
+
+### Fallback logic:
+Both functions try Anthropic first, catch any error, fall back to OpenAI. If both fail, return a graceful error message — never a crash.
+
+### netlify.toml (required):
+```toml
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+```
 
 ---
 
@@ -416,5 +586,7 @@ globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
 - Separate the 🌍 emoji from the gradient `<span>` — emoji inside a gradient CSS rule renders as a coloured blob
 - `autoRotate` must be set after globe init, not before
 - `globe.controls().autoRotate = false` on city select — otherwise globe spins away from the zoomed city
-- Netlify reads `.env.local` over `.env` if both exist
-- Kill all node processes before starting `netlify dev` to avoid port conflicts (port 3999)
+- Netlify reads `.env.local` over `.env` if both exist — always use `.env.local`
+- Kill all node processes before starting `netlify dev` to avoid port conflicts: `taskkill //F //IM node.exe //T`
+- Port 3999 still occupied after kill: `netstat -ano | grep 3999` then `taskkill //F //PID [pid]`
+- AI JSON response: always parse defensively — wrap in try/catch, the city name must match the cities array exactly
