@@ -14,14 +14,28 @@
 
 ## 🔸 PROMPT 2 — Design + Globe
 
-> Make it look stunning:
-> - Dark navy theme, gradient title (cyan to purple), Google Font
-> - 3D spinning globe using Globe.gl CDN: https://unpkg.com/globe.gl
-> - Blue marble earth texture, glowing cyan city dots
-> - Cities: Bali, Lisbon, Chiang Mai, Medellín, Mexico City, Porto, Bangkok, Tbilisi
-> - City list on the left (flag, name, cost, vibe tag)
-> - Empty panel on the right for later
-> - Globe auto-rotates slowly
+> Transform this into a premium travel product. Apply this visual system:
+>
+> **Typography:** Barlow Condensed 700 + Inter (400/500/600) from Google Fonts. All headings uppercase Barlow Condensed. Hero title clamp(3rem, 8vw, 6rem), line-height 0.92.
+>
+> **Animated gradient hero section:** background: linear-gradient(-45deg, #0f172a, #0ea5e9, #7c3aed, #db2777, #f59e0b, #0ea5e9) — background-size: 500% 500% — @keyframes gradient-shift cycling background-position 0% 50% → 100% 50% over 18s
+>
+> **Nav:** Fixed frosted glass — background: rgba(255,255,255,0.08) + backdrop-filter: blur(20px) — full width
+>
+> **City stats marquee** below the hero: all 8 cities scrolling — flag, name, monthly cost, vibe. Two identical tracks inside a flex container, translateX(-50%) CSS animation, pause on hover.
+>
+> **3D spinning globe** (Globe.gl CDN: https://unpkg.com/globe.gl) — blue marble texture, transparent background, glowing cyan dots, slow auto-rotate, zoom disabled.
+> Cities: Bali, Lisbon, Chiang Mai, Medellín, Mexico City, Porto, Bangkok, Tbilisi
+>
+> **Layout:** 3 columns below the marquee — city list 220px | globe centred | results panel flex-1 — full remaining viewport height, no scroll
+>
+> **City list cards:** flag, name, cost, vibe tag. Hover: lift + cyan glow. Active: cyan border tint.
+>
+> **Results panel:** empty state — "✨ Pick a city or let AI choose"
+>
+> **✨ Find My Perfect City** frosted-glass pill button in hero section — non-functional for now
+>
+> Restraint: gradient on the hero section only, not on buttons. No particles. No animated borders.
 
 ---
 
