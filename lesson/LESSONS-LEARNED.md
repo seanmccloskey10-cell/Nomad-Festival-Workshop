@@ -35,12 +35,14 @@
 → If port 3999 still occupied after killing node, find and kill PID directly: `netstat -ano | grep 3999` then `taskkill //F //PID [pid]`
 
 **Freeform text input feels lost and unclear**
-→ Replaced with wizard modal — much better for stage demo and makes the AI feel more intentional
+→ Resolved: 3 structured quick-pick steps (budget / vibe / region) + 1 free text field. Structured steps give audience participation and visual cards; free text is where "it knows you" lands. Pre-script the demo answer and load into Whispr Flow before going live.
 
 ### 🎯 Action items for Dry Run #2
-- [ ] Test the full 4-prompt sequence from a clean slate (no existing files)
+- [ ] Test the full 4-prompt sequence from a clean slate — P2 now uses `/website-designer` skill, not a long paste
+- [ ] Verify `/website-designer` skill produces the animated gradient + marquee + globe correctly
 - [ ] Verify Globe.gl CDN loads reliably — have fallback SVG map prompt ready
-- [ ] Test AI wizard with real inputs — confirm city name appears in AI response (required for globe zoom)
-- [ ] Check all 8 cities render visa/budget/neighbourhood data correctly
-- [ ] Time each prompt — target 5 min per prompt including explanation
-- [ ] Consider adding a subtle glow/pulse to the "Find My Perfect City" button so it draws the eye
+- [ ] Test P3 city click → live API call → weather + nomad data renders correctly
+- [ ] Test P4 wizard with pre-scripted demo answer — confirm globe flies to Bali or Chiang Mai
+- [ ] Verify all 3 API keys in .env.local: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY
+- [ ] Time each prompt — target: P1 4min, P2 8min, P3 10min, P4 15min, Q&A 5min
+- [ ] Run /prep before starting — confirms clean slate + all backups present

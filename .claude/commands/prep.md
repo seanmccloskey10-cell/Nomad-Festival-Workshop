@@ -18,10 +18,10 @@ Do the following steps in order:
 Then output a concise day-of checklist:
 - [ ] index.html deleted (clean slate)
 - [ ] Backup snapshots: list which exist / which are missing
-- [ ] .env.local file present with OPENAI_API_KEY (check it exists, don't read the value)
+- [ ] .env.local present with all 3 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY (check file exists, don't read values)
 - [ ] Claude Code open in VS Code, font size bumped up for projection
 - [ ] Browser ready to preview index.html (open after Prompt 1)
 - [ ] backup/prompt4-result.html open in a background browser tab (final fallback)
-- [ ] Whispr Flow running
+- [ ] Whispr Flow running — pre-load P4 demo answer: "I'm a burnt-out designer, been in London four years. I need warmth, a beach nearby, good coffee shops, and decent WiFi. Budget around £1,200 a month, want somewhere I can actually slow down."
 - [ ] Wi-Fi tested (or hotspot ready)
-- [ ] netlify dev ready to run for Prompt 4
+- [ ] netlify dev ready to run for Prompt 3 onward
