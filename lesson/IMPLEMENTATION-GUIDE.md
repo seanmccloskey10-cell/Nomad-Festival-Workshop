@@ -69,11 +69,12 @@ h1, h2, h3 {
 **Animated gradient hero:**
 ```css
 .hero {
-  background: linear-gradient(-45deg, #0f172a, #0ea5e9, #7c3aed, #db2777, #f59e0b, #0ea5e9);
-  background-size: 500% 500%;
-  animation: gradient-shift 18s ease infinite;
-  padding: 72px 24px 32px;
+  background: linear-gradient(-45deg, #0284c7, #7c3aed, #db2777, #f59e0b, #0ea5e9, #0284c7);
+  background-size: 400% 400%;
+  animation: gradient-shift 14s ease infinite;
+  padding: 56px 24px 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 @keyframes gradient-shift {
@@ -84,21 +85,29 @@ h1, h2, h3 {
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
   line-height: 0.92;
   font-weight: 700;
   text-transform: uppercase;
   color: #fff;
   text-shadow: 0 4px 32px rgba(0,0,0,0.3);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .hero-sub {
-  font-size: 16px;
+  font-size: 13px;
   color: rgba(255,255,255,0.75);
   font-weight: 500;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
+```
+
+**Key gradient lesson:** Do NOT anchor with a dark colour like `#0f172a` — it suppresses the vivid stops and the whole gradient goes flat/blue. Start with a vivid colour (`#0284c7`) so every stop in the cycle is colourful.
+
+**Hero title on a vivid gradient background:** Use white text, not a cyan/purple gradient — the hero itself provides the colour. Gradient-on-gradient = illegible.
+```html
+<!-- ✅ white text on vivid gradient hero -->
+<h1 class="hero-title">🌍 <span style="color:#fff;">Nomad Finder</span></h1>
 ```
 
 **IMPORTANT — emoji + gradient title:** Separate the 🌍 emoji from the gradient `<span>`:
@@ -268,7 +277,32 @@ globe.controls().autoRotateSpeed = 0.6;
 globe.controls().enableZoom = false;
 ```
 
-Globe container: `width: 500px; height: 500px` — explicit size required or globe won't render.
+Globe container: `width: 480px; height: 480px` — explicit size required or globe won't render. Also set `.width(480).height(480)` in the Globe() chain.
+
+```css
+.globe-panel {
+  flex: 0 0 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#globe-container { width: 480px; height: 480px; }
+```
+
+Results panel — align top, not centre (centred text floats oddly over the globe visually):
+```css
+.results-panel {
+  flex: 1;
+  padding: 24px;
+  padding-top: 48px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+```
 
 **City data — use exactly this:**
 ```js
@@ -424,56 +458,88 @@ Return only valid JSON, no markdown.`;
 - 3 clickable steps + 1 free-text field → AI picks a city
 - The lesson: *AI doesn't just return data — it reasons and decides*
 
-### Wizard modal (reference):
-- Overlay: `rgba(10,16,26,0.9)` + `backdrop-filter: blur(8px)`
-- Card: `background: #0e1c2e`, 540px wide, 28px border-radius
-- Scale-in animation: `transform: scale(0.9) → scale(1)`, 0.25s ease-out
-- Progress: 3 dots + 1 text icon at top, filled cyan as steps complete
+### Wizard modal structure
+
+- Overlay: `position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 200`
+- Card: `background: #0d1829`, 520px wide, `border-radius: 20px`
+- 4 progress dots at top, active dot filled cyan
+- Steps: 0=Budget, 1=Vibe, 2=Region, 3=Free text, result=Loading+Result
 
 ### 3 quick-pick steps (2×2 grid of cards):
 
-Step 1 — Budget: 🌱 Under $1k / ✈️ $1k–$1.5k / 🏙️ $1.5k–$2.5k / 💎 $2.5k+
-Step 2 — Vibe: 🏖️ Beach & Sun / 🏙️ City Energy / 🏛️ Culture & History / 🌿 Chill & Slow
-Step 3 — Region: 🌏 Asia / 🌍 Europe / 🌎 Americas / 🎲 Surprise Me
+Step 1 — Budget: 💸 Under $1,000 / 💰 $1,000–$1,500 / 🤑 $1,500–$2,500 / 💎 $2,500+
+Step 2 — Vibe: 🏖️ Beach & Nature / 🏙️ Urban Energy / 🏛️ Culture & History / 🎉 Party & Nightlife
+Step 3 — Region: 🌏 Southeast Asia / 🇪🇺 Europe / 🌎 Latin America / 🌍 Anywhere
 
-Option card selected state: `border: 1.5px solid #00d4ff; background: rgba(0,212,255,0.08)`
-Next button disabled until option selected.
+Option card selected state: `border-color: var(--cyan); background: rgba(0,212,255,0.1)`
+Next buttons start `disabled`, enabled only when an option is picked.
 
-### Step 4 — free text:
+**⚠️ CRITICAL BUG TO AVOID:** The "Find My Perfect City" submit button must use a *different* CSS class from the step "Continue →" buttons. If both share `.btn-next`, `openWizard()` disabling all `.btn-next` on reset will permanently disable the submit button.
+
+```css
+/* Step navigation buttons — start disabled */
+.btn-next { ... }
+.btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Submit button — NEVER disabled, separate class */
+.btn-submit { /* same visual style as .btn-next but no disabled logic */ }
+```
+
+### Step 3 — free text:
 ```html
-<div class="wizard-step" id="step4">
-  <h3>Tell us about yourself</h3>
-  <p class="wizard-sub">What are you escaping? What matters to you?</p>
-  <textarea id="aboutText" placeholder="e.g. I'm a designer in London, craving warmth and a slower pace. Fast WiFi matters, budget around $1,200/mo..." rows="4"></textarea>
-</div>
+<textarea id="about-field" rows="4"
+  placeholder="e.g. I'm a burnt-out designer, four years in London..."></textarea>
+<button class="btn-submit" onclick="submitWizard()">✨ Find My Perfect City</button>
 ```
 The free text field is where "it knows you" — the AI reads the person's own words, not just filter values.
 
-**Pre-scripted demo answer (verify this recommends Bali or Chiang Mai before going live):**
-> *"I'm a burnt-out designer, been in London four years. I need warmth, a beach nearby, good coffee shops, and decent WiFi. Budget around $1,200 a month, want somewhere I can actually slow down."*
+**Pre-scripted demo answer (confirmed → recommends Bali or Chiang Mai):**
+> *"software developer, sociable, love the beach. Like community and co-living if possible."*
 
-### On finish → call find-match:
+### Wizard JS (key pieces):
+
 ```js
-async function runWizard() {
-  const payload = {
-    budget: answers.budget,
-    vibe: answers.vibe,
-    region: answers.region,
-    about: document.getElementById('aboutText').value
-  };
+const wizardAnswers = {};
+let matchedCity = null;
+
+function openWizard() {
+  wizardAnswers.budget = wizardAnswers.vibe = wizardAnswers.region = null;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.btn-next').forEach(b => b.disabled = true); // ← only .btn-next, not .btn-submit
+  document.getElementById('about-field').value = '';
+  showWizardStep(0);
+  document.getElementById('wizard-overlay').classList.add('open');
+}
+
+function pick(step, key, value) {
+  wizardAnswers[key] = value;
+  const grid = document.getElementById(`step-${step}`).querySelector('.option-grid');
+  grid.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById(`next-${step}`).disabled = false;
+}
+
+async function submitWizard() {
+  showWizardStep('result');
   const res = await fetch('/api/find-match', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      budget: wizardAnswers.budget,
+      vibe: wizardAnswers.vibe,
+      region: wizardAnswers.region,
+      about: document.getElementById('about-field').value || 'No extra info'
+    })
   });
-  const { city: cityName, reason } = await res.json();
-  const city = cities.find(c => c.name === cityName);
-  if (city) {
-    globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1200);
-    globe.controls().autoRotate = false;
-    globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
-    renderCityPanel(city, { aiReason: reason });
-  }
+  const data = await res.json();
+  matchedCity = data.city;
+  // show result UI with data.city + data.reason
+}
+
+function goToCity() {
+  const city = cities.find(c => c.name === matchedCity);
+  closeWizard();
+  selectCity(city, /* matching card el */);
 }
 ```
 

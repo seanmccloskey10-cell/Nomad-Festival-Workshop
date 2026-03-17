@@ -38,11 +38,37 @@
 → Resolved: 3 structured quick-pick steps (budget / vibe / region) + 1 free text field. Structured steps give audience participation and visual cards; free text is where "it knows you" lands. Pre-script the demo answer and load into Whispr Flow before going live.
 
 ### 🎯 Action items for Dry Run #2
-- [ ] Test the full 4-prompt sequence from a clean slate — P2 now uses `/website-designer` skill, not a long paste
-- [ ] Verify `/website-designer` skill produces the animated gradient + marquee + globe correctly
-- [ ] Verify Globe.gl CDN loads reliably — have fallback SVG map prompt ready
-- [ ] Test P3 city click → live API call → weather + nomad data renders correctly
-- [ ] Test P4 wizard with pre-scripted demo answer — confirm globe flies to Bali or Chiang Mai
-- [ ] Verify all 3 API keys in .env.local: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY
+- [x] Test the full 4-prompt sequence from a clean slate — P2 now uses `/website-designer` skill, not a long paste
+- [x] Verify `/website-designer` skill produces the animated gradient + marquee + globe correctly
+- [x] Verify Globe.gl CDN loads reliably — have fallback SVG map prompt ready
+- [x] Test P3 city click → live API call → weather + nomad data renders correctly
+- [x] Test P4 wizard with pre-scripted demo answer — confirm globe flies to recommended city
+- [x] Verify all 3 API keys in .env.local: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY
 - [ ] Time each prompt — target: P1 4min, P2 8min, P3 10min, P4 15min, Q&A 5min
-- [ ] Run /prep before starting — confirms clean slate + all backups present
+- [x] Run /prep before starting — confirms clean slate + all backups present
+
+---
+
+## Dry Run #2 — 2026-03-17
+
+### ✅ What worked well
+- Full 4-prompt sequence completed end-to-end
+- `/website-designer` skill worked cleanly — gradient, marquee, globe all rendered
+- Wizard modal felt polished — 3 card-pick steps + free text is the right UX
+- AI recommendation came back correctly and globe flew to the matched city
+- `goToCity()` closing the modal and loading the city panel in one move is a satisfying payoff
+- Demo answer *"software developer, sociable, love the beach, co-living"* got a good recommendation
+
+### 🔧 What to fix / caught bugs
+
+**Wizard submit button permanently disabled**
+→ `openWizard()` reset runs `document.querySelectorAll('.btn-next').forEach(b => b.disabled = true)` — this caught the submit button because it shared the `.btn-next` class
+→ Fix: give the submit button its own class `.btn-submit` — the reset only targets `.btn-next` step buttons
+→ **Document in implementation guide: always use separate classes for step nav vs submit**
+
+### 🎯 Action items for live show
+- [ ] Time each prompt on stage — target: P1 4min, P2 8min, P3 10min, P4 15min, Q&A 5min
+- [ ] Load demo answer into Whispr Flow before going on stage
+- [ ] Test on projector/external display — check gradient colours are vivid (not washed out)
+- [ ] Confirm hotspot is ready as WiFi fallback
+- [ ] Run `/prep` command to confirm clean slate + all 4 backups present

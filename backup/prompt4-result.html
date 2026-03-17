@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nomad Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body:    'Inter', sans-serif;
+      --cyan:   #00d4ff;
+      --purple: #a855f7;
+      --navy:   #0a1020;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--navy);
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #fff;
+    }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(-45deg, #0284c7, #7c3aed, #db2777, #f59e0b, #0ea5e9, #0284c7);
+      background-size: 400% 400%;
+      animation: gradient-shift 14s ease infinite;
+      padding: 56px 24px 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    @keyframes gradient-shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 0.92;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 4px 32px rgba(0,0,0,0.3);
+      margin-bottom: 8px;
+    }
+
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.85));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+
+    .btn-find {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 50px;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .btn-find:hover {
+      background: rgba(255,255,255,0.28);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    /* ── MARQUEE ── */
+    .marquee-bar {
+      background: #060b14;
+      overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .marquee-wrap { display: flex; overflow: hidden; }
+    .marquee-track {
+      display: flex;
+      flex-shrink: 0;
+      animation: marquee-scroll 32s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    @keyframes marquee-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-item {
+      display: flex;
+      align-items: center;
+      padding: 13px 28px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      gap: 10px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .m-city { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); }
+    .m-meta { font-size: 12px; color: rgba(255,255,255,0.4); }
+    .m-dot  { color: rgba(255,255,255,0.15); padding: 0 12px; font-size: 10px; flex-shrink: 0; }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── CITY LIST ── */
+    .city-list {
+      width: 220px;
+      flex-shrink: 0;
+      padding: 16px 12px;
+      overflow-y: auto;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .city-list-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+    .city-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 11px 13px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .city-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0,212,255,0.12);
+      border-color: rgba(0,212,255,0.25);
+    }
+    .city-card.active {
+      border-color: var(--cyan);
+      background: rgba(0,212,255,0.07);
+    }
+    .city-card-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+    .city-card-meta {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ── GLOBE ── */
+    .globe-panel {
+      flex: 0 0 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #globe-container {
+      width: 480px;
+      height: 480px;
+    }
+
+    /* ── RESULTS PANEL ── */
+    .results-panel {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      border-left: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 48px;
+    }
+    .results-empty {
+      text-align: center;
+      opacity: 0.5;
+    }
+    .results-empty .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .results-empty p { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.5); }
+
+    /* ── CITY PANEL ── */
+    .city-panel { width: 100%; }
+    .city-panel-header {
+      background: rgba(0,212,255,0.06);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .city-panel-name {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .city-panel-desc { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+    .city-panel-weather {
+      font-size: 12px;
+      color: var(--cyan);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    /* ── ACCORDION ── */
+    .accordion { display: flex; flex-direction: column; gap: 6px; }
+    .acc-item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .acc-header {
+      padding: 13px 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .acc-header:hover { background: rgba(255,255,255,0.04); }
+    .acc-arrow { color: rgba(255,255,255,0.3); transition: transform 0.2s; font-size: 11px; }
+    .acc-item.open .acc-arrow { transform: rotate(180deg); }
+    .acc-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+    }
+    .acc-item.open .acc-body { max-height: 400px; }
+    .acc-content { padding: 0 16px 14px; }
+
+    .neighbourhood-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .neighbourhood-row:last-child { border-bottom: none; }
+    .neigh-name { font-weight: 600; color: #fff; }
+    .neigh-price { color: var(--cyan); font-size: 12px; }
+    .neigh-vibe { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: rgba(255,255,255,0.6); font-size: 12px; }
+    .stat-bar { display: flex; gap: 3px; }
+    .stat-pip {
+      width: 18px; height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.12);
+    }
+    .stat-pip.filled { background: var(--cyan); }
+
+    .loading-state {
+      text-align: center;
+      padding: 48px 0;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+    }
+    .loading-spinner {
+      width: 28px; height: 28px;
+      border: 2px solid rgba(0,212,255,0.2);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── WIZARD MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #0d1829;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 36px;
+      width: 520px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 20px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .modal-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 28px;
+    }
+
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+
+    .step-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 10px;
+    }
+    .step-question {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .option-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+      color: #fff;
+    }
+    .option-btn:hover {
+      border-color: rgba(0,212,255,0.4);
+      background: rgba(0,212,255,0.06);
+    }
+    .option-btn.selected {
+      border-color: var(--cyan);
+      background: rgba(0,212,255,0.1);
+    }
+    .option-icon { font-size: 20px; margin-bottom: 6px; }
+    .option-label { font-size: 13px; font-weight: 600; }
+    .option-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+    .about-field {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 13px;
+      resize: none;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .about-field:focus { border-color: rgba(0,212,255,0.4); }
+    .about-field::placeholder { color: rgba(255,255,255,0.25); }
+
+    .btn-next {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      border: none;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-next:hover { opacity: 0.9; }
+    .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      border: none;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+
+    .wizard-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .wizard-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: background 0.2s;
+    }
+    .wizard-dot.active { background: var(--cyan); }
+
+    /* AI result inside modal */
+    .match-result {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+    .match-city-name {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .match-reason {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .btn-go {
+      padding: 13px 32px;
+      border-radius: 50px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-go:hover { background: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-logo">🌍 Nomad Finder</div>
+    <div class="nav-links">
+      <span>Cities</span>
+      <span>About</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1 class="hero-title">🌍 <span class="gradient-text">Nomad Finder</span></h1>
+    <p class="hero-sub">Find your perfect next city</p>
+    <button class="btn-find">✨ Find My Perfect City</button>
+  </div>
+
+  <!-- MARQUEE -->
+  <div class="marquee-bar">
+    <div class="marquee-wrap">
+      <div class="marquee-track">
+        <div class="marquee-item"><span class="m-city">🇮🇩 Bali</span><span class="m-meta">$1,200/mo · Beach</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇵🇹 Lisbon</span><span class="m-meta">$2,200/mo · City</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇹🇭 Chiang Mai</span><span class="m-meta">$900/mo · Culture</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇨🇴 Medellín</span><span class="m-meta">$1,400/mo · City</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇲🇽 Mexico City</span><span class="m-meta">$1,800/mo · City</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇵🇹 Porto</span><span class="m-meta">$1,900/mo · Culture</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇹🇭 Bangkok</span><span class="m-meta">$1,100/mo · City</span></div>
+        <span class="m-dot">◆</span>
+        <div class="marquee-item"><span class="m-city">🇬🇪 Tbilisi</span><span class="m-meta">$1,000/mo · Culture</span></div>
+        <span class="m-dot">◆</span>
+        <!-- Set 2 — identical for seamless loop -->
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇮🇩 Bali</span><span class="m-meta">$1,200/mo · Beach</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇵🇹 Lisbon</span><span class="m-meta">$2,200/mo · City</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇹🇭 Chiang Mai</span><span class="m-meta">$900/mo · Culture</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇨🇴 Medellín</span><span class="m-meta">$1,400/mo · City</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇲🇽 Mexico City</span><span class="m-meta">$1,800/mo · City</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇵🇹 Porto</span><span class="m-meta">$1,900/mo · Culture</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇹🇭 Bangkok</span><span class="m-meta">$1,100/mo · City</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+        <div class="marquee-item" aria-hidden="true"><span class="m-city">🇬🇪 Tbilisi</span><span class="m-meta">$1,000/mo · Culture</span></div>
+        <span class="m-dot" aria-hidden="true">◆</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- CITY LIST -->
+    <div class="city-list">
+      <div class="city-list-label">Cities</div>
+      <div id="city-list-items"></div>
+    </div>
+
+    <!-- GLOBE -->
+    <div class="globe-panel">
+      <div id="globe-container"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-panel" id="results-panel">
+      <div class="results-empty">
+        <div class="empty-icon">✨</div>
+        <p>Pick a city or let AI choose</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WIZARD MODAL -->
+  <div class="modal-overlay" id="wizard-overlay">
+    <div class="modal">
+      <button class="modal-close" onclick="closeWizard()">✕</button>
+      <div class="modal-title">✨ Find My City</div>
+      <p class="modal-subtitle">Answer 3 quick questions — AI picks your match</p>
+
+      <div class="wizard-dots">
+        <div class="wizard-dot active" id="dot-0"></div>
+        <div class="wizard-dot" id="dot-1"></div>
+        <div class="wizard-dot" id="dot-2"></div>
+        <div class="wizard-dot" id="dot-3"></div>
+      </div>
+
+      <!-- Step 0: Budget -->
+      <div class="wizard-step active" id="step-0">
+        <div class="step-label">Step 1 of 3</div>
+        <div class="step-question">What's your monthly budget?</div>
+        <div class="option-grid">
+          <div class="option-btn" onclick="pick(0,'budget','Under $1,000')">
+            <div class="option-icon">💸</div>
+            <div class="option-label">Under $1,000</div>
+            <div class="option-sub">Super lean</div>
+          </div>
+          <div class="option-btn" onclick="pick(0,'budget','$1,000–$1,500')">
+            <div class="option-icon">💰</div>
+            <div class="option-label">$1,000–$1,500</div>
+            <div class="option-sub">Comfortable</div>
+          </div>
+          <div class="option-btn" onclick="pick(0,'budget','$1,500–$2,500')">
+            <div class="option-icon">🤑</div>
+            <div class="option-label">$1,500–$2,500</div>
+            <div class="option-sub">No trade-offs</div>
+          </div>
+          <div class="option-btn" onclick="pick(0,'budget','$2,500+')">
+            <div class="option-icon">💎</div>
+            <div class="option-label">$2,500+</div>
+            <div class="option-sub">Premium life</div>
+          </div>
+        </div>
+        <button class="btn-next" id="next-0" disabled onclick="nextStep(1)">Continue →</button>
+      </div>
+
+      <!-- Step 1: Vibe -->
+      <div class="wizard-step" id="step-1">
+        <div class="step-label">Step 2 of 3</div>
+        <div class="step-question">What's your vibe?</div>
+        <div class="option-grid">
+          <div class="option-btn" onclick="pick(1,'vibe','Beach & nature')">
+            <div class="option-icon">🏖️</div>
+            <div class="option-label">Beach & Nature</div>
+            <div class="option-sub">Surf, sun, slow living</div>
+          </div>
+          <div class="option-btn" onclick="pick(1,'vibe','Urban energy')">
+            <div class="option-icon">🏙️</div>
+            <div class="option-label">Urban Energy</div>
+            <div class="option-sub">Coffee shops, coworking</div>
+          </div>
+          <div class="option-btn" onclick="pick(1,'vibe','Culture & history')">
+            <div class="option-icon">🏛️</div>
+            <div class="option-label">Culture & History</div>
+            <div class="option-sub">Explore, discover, wander</div>
+          </div>
+          <div class="option-btn" onclick="pick(1,'vibe','Party & nightlife')">
+            <div class="option-icon">🎉</div>
+            <div class="option-label">Party & Nightlife</div>
+            <div class="option-sub">Work hard, play hard</div>
+          </div>
+        </div>
+        <button class="btn-next" id="next-1" disabled onclick="nextStep(2)">Continue →</button>
+      </div>
+
+      <!-- Step 2: Region -->
+      <div class="wizard-step" id="step-2">
+        <div class="step-label">Step 3 of 3</div>
+        <div class="step-question">Any region preference?</div>
+        <div class="option-grid">
+          <div class="option-btn" onclick="pick(2,'region','Southeast Asia')">
+            <div class="option-icon">🌏</div>
+            <div class="option-label">Southeast Asia</div>
+            <div class="option-sub">Bali, Bangkok, Chiang Mai</div>
+          </div>
+          <div class="option-btn" onclick="pick(2,'region','Europe')">
+            <div class="option-icon">🇪🇺</div>
+            <div class="option-label">Europe</div>
+            <div class="option-sub">Lisbon, Porto, Tbilisi</div>
+          </div>
+          <div class="option-btn" onclick="pick(2,'region','Latin America')">
+            <div class="option-icon">🌎</div>
+            <div class="option-label">Latin America</div>
+            <div class="option-sub">Medellín, Mexico City</div>
+          </div>
+          <div class="option-btn" onclick="pick(2,'region','Open to anywhere')">
+            <div class="option-icon">🌍</div>
+            <div class="option-label">Anywhere</div>
+            <div class="option-sub">Surprise me</div>
+          </div>
+        </div>
+        <button class="btn-next" id="next-2" disabled onclick="nextStep(3)">Continue →</button>
+      </div>
+
+      <!-- Step 3: About + Submit -->
+      <div class="wizard-step" id="step-3">
+        <div class="step-label">Almost there</div>
+        <div class="step-question">Tell us a bit about yourself</div>
+        <textarea class="about-field" id="about-field" rows="4"
+          placeholder="e.g. I'm a burnt-out designer, four years in London. I need warmth, a beach nearby, good coffee shops, and decent WiFi. Budget around £1,200 a month."></textarea>
+        <button class="btn-submit" onclick="submitWizard()">✨ Find My Perfect City</button>
+      </div>
+
+      <!-- Step 4: Result -->
+      <div class="wizard-step" id="step-result">
+        <div id="wizard-loading" class="loading-state">
+          <div class="loading-spinner"></div>
+          AI is thinking...
+        </div>
+        <div id="wizard-result" class="match-result" style="display:none">
+          <div class="match-city-name" id="match-city-name"></div>
+          <p class="match-reason" id="match-reason"></p>
+          <button class="btn-go" onclick="goToCity()">Explore this city →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script>
+    const cities = [
+      { name: "Bali",        country: "🇮🇩", lat: -8.4095,  lng: 115.1889, cost: 1200, wifi: 7,  vibe: "Beach",   desc: "Spiritual surf culture, cheap living, strong nomad community" },
+      { name: "Lisbon",      country: "🇵🇹", lat: 38.7169,  lng: -9.1395,  cost: 2200, wifi: 9,  vibe: "City",    desc: "Europe's sunniest capital, startup scene, incredible food" },
+      { name: "Chiang Mai",  country: "🇹🇭", lat: 18.7883,  lng: 98.9853,  cost: 900,  wifi: 8,  vibe: "Culture", desc: "Temples, mountains, the original nomad hub, ultra cheap" },
+      { name: "Medellín",    country: "🇨🇴", lat: 6.2442,   lng: -75.5812, cost: 1400, wifi: 7,  vibe: "City",    desc: "Eternal spring climate, buzzing social scene, affordable" },
+      { name: "Mexico City", country: "🇲🇽", lat: 19.4326,  lng: -99.1332, cost: 1800, wifi: 8,  vibe: "City",    desc: "World-class food, culture, massive expat community" },
+      { name: "Porto",       country: "🇵🇹", lat: 41.1579,  lng: -8.6291,  cost: 1900, wifi: 9,  vibe: "Culture", desc: "Wine, cobblestones, slower pace, Lisbon's cooler sibling" },
+      { name: "Bangkok",     country: "🇹🇭", lat: 13.7563,  lng: 100.5018, cost: 1100, wifi: 9,  vibe: "City",    desc: "Insane food, fast internet, 24/7 energy, visa-friendly" },
+      { name: "Tbilisi",     country: "🇬🇪", lat: 41.6938,  lng: 44.8015,  cost: 1000, wifi: 8,  vibe: "Culture", desc: "Underrated gem, Georgian wine, remote-work visa, tiny crowds" }
+    ];
+
+    const resultsPanel = document.getElementById('results-panel');
+    let activeCard = null;
+
+    // ── BUILD CITY LIST ──
+    const listEl = document.getElementById('city-list-items');
+    cities.forEach(city => {
+      const card = document.createElement('div');
+      card.className = 'city-card';
+      card.innerHTML = `
+        <div class="city-card-name">${city.country} ${city.name}</div>
+        <div class="city-card-meta">$${city.cost.toLocaleString()}/mo · ${city.vibe}</div>
+      `;
+      card.addEventListener('click', () => selectCity(city, card));
+      listEl.appendChild(card);
+    });
+
+    // ── GLOBE ──
+    const globe = Globe()
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      .backgroundColor('rgba(0,0,0,0)')
+      .width(480)
+      .height(480)
+      .pointsData(cities)
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointColor(() => '#00d4ff')
+      .pointAltitude(0.02)
+      .pointRadius(0.6)
+      .onPointClick(point => {
+        const city = cities.find(c => c.name === point.name);
+        const card = [...listEl.children].find(el => el.querySelector('.city-card-name').textContent.includes(city.name));
+        if (city) selectCity(city, card);
+      })
+      (document.getElementById('globe-container'));
+
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.6;
+    globe.controls().enableZoom = false;
+
+    // ── SELECT CITY ──
+    function selectCity(city, cardEl) {
+      // Update active state
+      if (activeCard) activeCard.classList.remove('active');
+      if (cardEl) { cardEl.classList.add('active'); activeCard = cardEl; }
+
+      // Globe zoom + stop rotation
+      globe.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.5 }, 1000);
+      globe.controls().autoRotate = false;
+      globe.pointColor(d => d.name === city.name ? '#ffffff' : 'rgba(0,212,255,0.3)');
+
+      // Load live data
+      loadCityData(city);
+    }
+
+    // ── LOAD LIVE DATA ──
+    async function loadCityData(city) {
+      resultsPanel.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          Loading ${city.name} data...
+        </div>`;
+
+      try {
+        const res = await fetch(`/api/city-info?city=${encodeURIComponent(city.name)}`);
+        const data = await res.json();
+        renderCityPanel(city, data);
+      } catch (e) {
+        resultsPanel.innerHTML = `<div class="loading-state">Could not load data. Try again.</div>`;
+      }
+    }
+
+    // ── RENDER PANEL ──
+    function renderCityPanel(city, data) {
+      const pips = n => Array.from({length: 10}, (_, i) =>
+        `<div class="stat-pip ${i < n ? 'filled' : ''}"></div>`).join('');
+
+      const whereToStay = (data.whereToStay || []).map(n => `
+        <div class="neighbourhood-row">
+          <div>
+            <div class="neigh-name">${n.neighbourhood}</div>
+            <div class="neigh-vibe">${n.vibe}</div>
+          </div>
+          <div class="neigh-price">${n.price}</div>
+        </div>`).join('');
+
+      const stats = data.nomadStats || {};
+      const budget = data.budget || {};
+
+      resultsPanel.innerHTML = `
+        <div class="city-panel">
+          <div class="city-panel-header">
+            <div class="city-panel-name">${city.country} ${city.name}</div>
+            <div class="city-panel-desc">${city.desc}</div>
+            ${data.weather ? `<div class="city-panel-weather">🌤️ ${data.weather} right now</div>` : ''}
+          </div>
+
+          <div class="accordion">
+            <div class="acc-item">
+              <div class="acc-header" onclick="toggleAcc(this)">
+                <span>🏠 Where to Stay</span><span class="acc-arrow">▼</span>
+              </div>
+              <div class="acc-body"><div class="acc-content">${whereToStay || 'Data loading...'}</div></div>
+            </div>
+
+            <div class="acc-item">
+              <div class="acc-header" onclick="toggleAcc(this)">
+                <span>✈️ Visa Info — UK Residents</span><span class="acc-arrow">▼</span>
+              </div>
+              <div class="acc-body"><div class="acc-content">${data.visaUK || 'Data loading...'}</div></div>
+            </div>
+
+            <div class="acc-item">
+              <div class="acc-header" onclick="toggleAcc(this)">
+                <span>💰 Monthly Budget</span><span class="acc-arrow">▼</span>
+              </div>
+              <div class="acc-body"><div class="acc-content">
+                <strong style="color:var(--cyan)">${budget.min ? `$${budget.min}–$${budget.max}/mo` : ''}</strong>
+                ${budget.breakdown ? `<br><span style="color:rgba(255,255,255,0.5);font-size:12px">${budget.breakdown}</span>` : ''}
+              </div></div>
+            </div>
+
+            <div class="acc-item">
+              <div class="acc-header" onclick="toggleAcc(this)">
+                <span>📶 Nomad Stats</span><span class="acc-arrow">▼</span>
+              </div>
+              <div class="acc-body"><div class="acc-content">
+                <div class="stat-row"><span class="stat-label">WiFi Quality</span><div class="stat-bar">${pips(stats.wifi||0)}</div></div>
+                <div class="stat-row"><span class="stat-label">Affordability</span><div class="stat-bar">${pips(stats.affordability||0)}</div></div>
+                <div class="stat-row"><span class="stat-label">Nomad Community</span><div class="stat-bar">${pips(stats.community||0)}</div></div>
+                <div class="stat-row"><span class="stat-label">English Spoken</span><div class="stat-bar">${pips(stats.english||0)}</div></div>
+              </div></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function toggleAcc(header) {
+      const item = header.parentElement;
+      item.classList.toggle('open');
+    }
+
+    // ── WIZARD ──
+    document.querySelector('.btn-find').addEventListener('click', openWizard);
+
+    const wizardAnswers = {};
+    let matchedCity = null;
+
+    function openWizard() {
+      // Reset state
+      wizardAnswers.budget = wizardAnswers.vibe = wizardAnswers.region = null;
+      document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelectorAll('.btn-next').forEach(b => b.disabled = true);
+      document.getElementById('about-field').value = '';
+      showWizardStep(0);
+      document.getElementById('wizard-overlay').classList.add('open');
+    }
+
+    function closeWizard() {
+      document.getElementById('wizard-overlay').classList.remove('open');
+    }
+    document.getElementById('wizard-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeWizard();
+    });
+
+    function showWizardStep(n) {
+      document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.wizard-dot').forEach(d => d.classList.remove('active'));
+      const stepEl = document.getElementById(`step-${n === 'result' ? 'result' : n}`);
+      if (stepEl) stepEl.classList.add('active');
+      const dotEl = document.getElementById(`dot-${n === 'result' ? 3 : n}`);
+      if (dotEl) dotEl.classList.add('active');
+    }
+
+    function pick(step, key, value) {
+      wizardAnswers[key] = value;
+      // Highlight selected
+      const grid = document.getElementById(`step-${step}`).querySelector('.option-grid');
+      grid.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+      // Enable next
+      document.getElementById(`next-${step}`).disabled = false;
+    }
+
+    function nextStep(n) {
+      showWizardStep(n);
+    }
+
+    async function submitWizard() {
+      const about = document.getElementById('about-field').value.trim();
+      document.getElementById('wizard-loading').style.display = 'block';
+      document.getElementById('wizard-result').style.display = 'none';
+      showWizardStep('result');
+
+      try {
+        const res = await fetch('/api/find-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            budget: wizardAnswers.budget,
+            vibe: wizardAnswers.vibe,
+            region: wizardAnswers.region,
+            about: about || 'No extra info provided'
+          })
+        });
+        const data = await res.json();
+        matchedCity = data.city;
+
+        document.getElementById('match-city-name').textContent = data.city;
+        document.getElementById('match-reason').textContent = data.reason;
+        document.getElementById('wizard-loading').style.display = 'none';
+        document.getElementById('wizard-result').style.display = 'block';
+      } catch (e) {
+        document.getElementById('wizard-loading').innerHTML = '<p style="color:rgba(255,255,255,0.5)">Could not reach AI. Try again.</p>';
+      }
+    }
+
+    function goToCity() {
+      const city = cities.find(c => c.name === matchedCity);
+      if (!city) return;
+      closeWizard();
+      const card = [...listEl.children].find(el => el.querySelector('.city-card-name').textContent.includes(city.name));
+      selectCity(city, card);
+    }
+  </script>
+
+</body>
+</html>
