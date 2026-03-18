@@ -18,7 +18,7 @@ Do the following steps in order:
 Then output a concise day-of checklist:
 - [ ] index.html deleted (clean slate)
 - [ ] Backup snapshots: list which exist / which are missing
-- [ ] .env.local present with all 3 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY (check file exists, don't read values)
+- [ ] .env or .env.local present with all 3 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY (check either file exists, don't read values — user uses .env in root)
 - [ ] Claude Code open in VS Code, font size bumped up for projection
 - [ ] Browser ready to preview index.html (open after Prompt 1)
 - [ ] backup/prompt4-result.html open in a background browser tab (final fallback)
