@@ -656,3 +656,4 @@ Both functions try Anthropic first, catch any error, fall back to OpenAI. If bot
 - Kill all node processes before starting `netlify dev` to avoid port conflicts: `taskkill //F //IM node.exe //T`
 - Port 3999 still occupied after kill: `netstat -ano | grep 3999` then `taskkill //F //PID [pid]`
 - AI JSON response: always parse defensively — wrap in try/catch, the city name must match the cities array exactly
+- AI sometimes wraps JSON in markdown code fences (` ```json...``` `) even when told not to — strip them before parsing: `text.replace(/```json\n?|\n?```/g, '').trim()`. Use two layers: explicit prompt instruction ("Start with { end with }") + defensive strip in code.
