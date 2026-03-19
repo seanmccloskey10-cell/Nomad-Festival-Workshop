@@ -15,13 +15,19 @@ Do the following steps in order:
 
 4. Read `lesson/PROMPTS.md` and display all 4 prompts clearly, formatted and ready to copy-paste or dictate
 
+5. Read `lesson/IMPLEMENTATION-GUIDE.md` → display the "Common Mistakes to Avoid" section so the presenter has it front of mind
+
+6. Read `website-designer/SKILL.md` in full so you have the full visual system loaded and can apply it accurately in Prompt 2
+
 Then output a concise day-of checklist:
 - [ ] index.html deleted (clean slate)
 - [ ] Backup snapshots: list which exist / which are missing
-- [ ] .env or .env.local present with all 3 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY (check either file exists, don't read values — user uses .env in root)
+- [ ] .env present with all 3 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENWEATHER_API_KEY (check file exists, don't read values)
 - [ ] Claude Code open in VS Code, font size bumped up for projection
 - [ ] Browser ready to preview index.html (open after Prompt 1)
 - [ ] backup/prompt4-result.html open in a background browser tab (final fallback)
-- [ ] Whispr Flow running — pre-load P4 demo answer: "I'm a burnt-out designer, been in London four years. I need warmth, a beach nearby, good coffee shops, and decent WiFi. Budget around £1,200 a month, want somewhere I can actually slow down."
+- [ ] Whispr Flow running — pre-load P4 demo answer: "software developer, sociable, love the beach. Like community and co-living if possible." (confirmed → recommends Bali or Chiang Mai)
 - [ ] Wi-Fi tested (or hotspot ready)
-- [ ] netlify dev ready to run for Prompt 3 onward
+- [ ] netlify dev ready to run for Prompt 3 onward: `netlify dev` (port 3999)
+
+**Emergency recovery:** `git checkout solution -- index.html` then open index.html in the browser.

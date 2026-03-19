@@ -38,9 +38,9 @@ Apply to the main hero/header section — not the entire page.
 
 ```css
 .hero {
-  background: linear-gradient(-45deg, #0f172a, #0ea5e9, #7c3aed, #db2777, #f59e0b, #0ea5e9);
-  background-size: 500% 500%;
-  animation: gradient-shift 18s ease infinite;
+  background: linear-gradient(-45deg, #0284c7, #7c3aed, #db2777, #f59e0b, #0ea5e9, #0284c7);
+  background-size: 400% 400%;
+  animation: gradient-shift 14s ease infinite;
 }
 @keyframes gradient-shift {
   0%   { background-position: 0% 50%; }
@@ -49,7 +49,9 @@ Apply to the main hero/header section — not the entire page.
 }
 ```
 
-Colours route: deep navy → ocean blue → violet → magenta → gold → back to blue. No jarring jumps.
+Colours route: ocean blue → violet → magenta → gold → back to blue. No jarring jumps.
+
+**⚠️ Do NOT anchor with a dark colour like `#0f172a`** — it suppresses the vivid stops and the whole gradient goes flat/blue. Always start with a vivid colour (`#0284c7`) so every stop in the cycle is colourful.
 
 ---
 
@@ -87,6 +89,8 @@ Use on cards that sit over a vivid background (hero gradient). Needs something c
   box-shadow: 0 32px 80px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 ```
+
+**⚠️ Canvas + glassmorphism:** If a `<canvas>` element is present (e.g. a globe renderer), the canvas must be a **sibling** to glass cards — never inside a container that has `backdrop-filter`. `backdrop-filter` on a parent that wraps a canvas freezes the canvas render loop.
 
 ---
 
